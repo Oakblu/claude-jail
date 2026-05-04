@@ -1,0 +1,3 @@
+# Never commit real Claude credentials or config
+examples/.claude/
+examples/.claude.json

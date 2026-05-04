@@ -1,0 +1,15 @@
+services:
+  claude-jail:
+    image: oakblu/claude-jail:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - ${WORKSPACE_PATH:-.}:/workspace
+      - ${HOME}/.claude:/root/.claude
+      - ${HOME}/.claude.json:/root/.claude.json
+    working_dir: /workspace
+    security_opt:
+      - no-new-privileges
+    stdin_open: true
+    tty: true
