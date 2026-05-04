@@ -2,6 +2,22 @@
 
 Run [Claude Code](https://claude.ai/code) inside a Docker container so it can only touch the project you hand it — nothing else on your machine.
 
+## Quick start — Homebrew (recommended)
+
+```bash
+brew install oakblu/claude-jail/claude-jail
+```
+
+That's it. The installer checks for Docker, adds `claude-jail` to your PATH, and sets up your shell automatically.
+
+> **Prefer a shorter command?** Tap once, then use the short name forever:
+> ```bash
+> brew tap oakblu/claude-jail
+> brew install claude-jail
+> ```
+
+---
+
 ## Quick start — no clone needed
 
 The image is published to Docker Hub as [`oakblu/claude-jail`](https://hub.docker.com/r/oakblu/claude-jail). You only need Docker installed.
