@@ -1,8 +1,6 @@
-FROM node:latest
+FROM node:24-alpine
 
-RUN apt-get update && apt-get install -y \
-    git curl bash ca-certificates \
-    && rm -rf /var/lib/apt/lists/*
+RUN apk add --no-cache git curl bash ca-certificates
 
 RUN npm install -g @anthropic-ai/claude-code
 
