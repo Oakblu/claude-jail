@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0d1117"/>
+      <stop offset="100%" stop-color="#1a1133"/>
+    </linearGradient>
+    <linearGradient id="barGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#fbbf24"/>
+      <stop offset="100%" stop-color="#b45309"/>
+    </linearGradient>
+    <linearGradient id="lockGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#2563eb"/>
+      <stop offset="100%" stop-color="#1e3a8a"/>
+    </linearGradient>
+    <clipPath id="cageClip">
+      <rect x="72" y="122" width="256" height="178" rx="8"/>
+    </clipPath>
+  </defs>
+
+  <!-- Subtle border glow -->
+  <rect width="400" height="400" rx="72" fill="none" stroke="#3b82f6" stroke-width="1" opacity="0.15"/>
+
+  <!-- Container top rail -->
+  <rect x="58" y="94" width="284" height="32" rx="8" fill="#1c2a3a" stroke="#2563eb" stroke-width="2.5"/>
+
+  <!-- Rail bolts -->
+  <circle cx="96" cy="110" r="6" fill="#2563eb" opacity="0.9"/>
+  <circle cx="304" cy="110" r="6" fill="#2563eb" opacity="0.9"/>
+
+  <!-- Container body -->
+  <rect x="72" y="122" width="256" height="178" rx="8" fill="#080c10" stroke="#2563eb" stroke-width="3"/>
+
+  <!-- Vertical bars (jail) clipped inside the container -->
+  <g clip-path="url(#cageClip)">
+    <rect x="92"  y="122" width="15" height="178" rx="4" fill="url(#barGrad)"/>
+    <rect x="131" y="122" width="15" height="178" rx="4" fill="url(#barGrad)"/>
+    <rect x="170" y="122" width="15" height="178" rx="4" fill="url(#barGrad)"/>
+    <rect x="209" y="122" width="15" height="178" rx="4" fill="url(#barGrad)"/>
+    <rect x="248" y="122" width="15" height="178" rx="4" fill="url(#barGrad)"/>
+    <rect x="287" y="122" width="15" height="178" rx="4" fill="url(#barGrad)"/>
+    <!-- Horizontal cross-bar -->
+    <rect x="72" y="196" width="256" height="10" fill="#0d1117" opacity="0.7"/>
+  </g>
+
+  <!-- Lock shackle (drawn behind body) -->
+  <path d="M175 166 v-26 a25 25 0 0 1 50 0 v26"
+        fill="none" stroke="#60a5fa" stroke-width="10" stroke-linecap="round"/>
+
+  <!-- Lock body -->
+  <rect x="155" y="162" width="90" height="78" rx="12" fill="url(#lockGrad)" stroke="#60a5fa" stroke-width="2"/>
+
+  <!-- Keyhole circle -->
+  <circle cx="200" cy="195" r="13" fill="#0a0e1a"/>
+  <!-- Keyhole stem -->
+  <rect x="196" y="198" width="8" height="20" rx="3" fill="#0a0e1a"/>
+
+  <!-- Text label -->
+  <text x="200" y="334"
+        text-anchor="middle"
+        font-family="'Courier New', Courier, monospace"
+        font-size="25"
+        font-weight="bold"
+        fill="#64748b"
+        letter-spacing="4">claude-jail</text>
+</svg>
