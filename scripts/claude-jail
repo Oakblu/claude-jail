@@ -1,0 +1,283 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+DOCKER_IMAGE="oakblu/claude-jail:latest"
+MARKER_START="# >>> claude-jail-managed >>>"
+MARKER_END="# <<< claude-jail-managed <<<"
+
+# ── helpers ──────────────────────────────────────────────────────────────────
+
+die()  { echo "error: $*" >&2; exit 1; }
+warn() { echo "warning: $*" >&2; }
+info() { echo "$*"; }
+
+check_docker_installed() {
+  if ! command -v docker &>/dev/null; then
+    die "Docker is not installed.
+
+Install options:
+  • Docker Desktop  https://www.docker.com/products/docker-desktop
+  • OrbStack        https://orbstack.dev
+  • Colima          brew install colima && colima start"
+  fi
+}
+
+check_docker_running() {
+  if ! docker info &>/dev/null 2>&1; then
+    die "Docker daemon is not running.
+
+Start it with one of:
+  • Open Docker Desktop / OrbStack from your Applications folder
+  • colima start"
+  fi
+}
+
+# ── RC file detection ─────────────────────────────────────────────────────────
+
+detect_rc_file() {
+  local shell_name
+  shell_name="$(basename "${SHELL:-}")"
+
+  case "$shell_name" in
+    zsh)
+      echo "${ZDOTDIR:-$HOME}/.zshrc"
+      ;;
+    bash)
+      if [[ -f "$HOME/.bashrc" ]]; then
+        echo "$HOME/.bashrc"
+      else
+        echo "$HOME/.bash_profile"
+      fi
+      ;;
+    fish)
+      echo "${XDG_CONFIG_HOME:-$HOME/.config}/fish/config.fish"
+      ;;
+    *)
+      # Fallback: check common files
+      for f in "$HOME/.zshrc" "$HOME/.bashrc" "$HOME/.bash_profile"; do
+        if [[ -f "$f" ]]; then
+          echo "$f"
+          return
+        fi
+      done
+      echo ""
+      ;;
+  esac
+}
+
+brew_prefix() {
+  if command -v brew &>/dev/null; then
+    brew --prefix
+  elif [[ -d /opt/homebrew ]]; then
+    echo "/opt/homebrew"
+  elif [[ -d /usr/local/Homebrew ]]; then
+    echo "/usr/local"
+  else
+    echo ""
+  fi
+}
+
+# ── RC block helpers ──────────────────────────────────────────────────────────
+
+_rc_block_exists() {
+  grep -qF "$MARKER_START" "$1" 2>/dev/null
+}
+
+_remove_rc_block() {
+  local rc_file="$1"
+  local tmp
+  tmp="$(mktemp)"
+  # Remove the managed block and the blank line that precedes it
+  awk "
+    /^[[:space:]]*\$/ { blank=\$0; next }
+    /$MARKER_START/   { skip=1; blank=\"\"; next }
+    /$MARKER_END/     { skip=0; next }
+    skip              { next }
+    { if (blank != \"\") { print blank }; blank=\"\"; print }
+  " "$rc_file" > "$tmp"
+  mv "$tmp" "$rc_file"
+}
+
+_write_rc_block() {
+  local rc_file="$1"
+  local prefix="$2"
+  local shell_name="$3"
+
+  if [[ "$shell_name" == "fish" ]]; then
+    cat >> "$rc_file" <<EOF
+
+$MARKER_START
+# Managed by claude-jail — do not edit this block manually
+if not contains -- "$prefix/bin" \$fish_user_paths
+    fish_add_path "$prefix/bin"
+end
+$MARKER_END
+EOF
+  else
+    cat >> "$rc_file" <<EOF
+
+$MARKER_START
+# Managed by claude-jail — do not edit this block manually
+if [[ ":\$PATH:" != *":$prefix/bin:"* ]]; then
+  export PATH="$prefix/bin:\$PATH"
+fi
+$MARKER_END
+EOF
+  fi
+}
+
+# ── --install ─────────────────────────────────────────────────────────────────
+
+cmd_install() {
+  local quiet="${1:-}"
+  local rc_file
+  rc_file="$(detect_rc_file)"
+
+  if [[ -z "$rc_file" ]]; then
+    [[ -z "$quiet" ]] && warn "Could not detect shell RC file. Add claude-jail to your PATH manually."
+    return 0
+  fi
+
+  # Create the file if it doesn't exist (e.g. fresh fish config)
+  if [[ ! -f "$rc_file" ]]; then
+    mkdir -p "$(dirname "$rc_file")"
+    touch "$rc_file"
+  fi
+
+  local prefix
+  prefix="$(brew_prefix)"
+
+  local shell_name
+  shell_name="$(basename "${SHELL:-bash}")"
+
+  # Always remove the existing block first so reinstalls/upgrades stay in sync
+  local was_update=false
+  if _rc_block_exists "$rc_file"; then
+    _remove_rc_block "$rc_file"
+    was_update=true
+  fi
+
+  _write_rc_block "$rc_file" "$prefix" "$shell_name"
+
+  if [[ -z "$quiet" ]]; then
+    if $was_update; then
+      info "claude-jail: shell setup updated in $rc_file"
+    else
+      info "claude-jail: shell setup written to $rc_file"
+    fi
+    info "Reload your shell or run: source $rc_file"
+  fi
+  return 0
+}
+
+# ── --uninstall ───────────────────────────────────────────────────────────────
+
+cmd_uninstall() {
+  local rc_file
+  rc_file="$(detect_rc_file)"
+
+  if [[ -z "$rc_file" ]] || [[ ! -f "$rc_file" ]]; then
+    info "Nothing to remove."
+    return 0
+  fi
+
+  if ! _rc_block_exists "$rc_file"; then
+    info "No claude-jail block found in $rc_file"
+    return 0
+  fi
+
+  _remove_rc_block "$rc_file"
+  info "Removed claude-jail block from $rc_file"
+}
+
+# ── --help ────────────────────────────────────────────────────────────────────
+
+cmd_help() {
+  cat <<'EOF'
+claude-jail — Run Claude Code inside an isolated Docker sandbox
+
+USAGE
+  claude-jail [OPTIONS]
+  claude-jail [CLAUDE ARGS...]
+
+OPTIONS
+  -h, --help        Show this help message and exit
+  --install         Add claude-jail to your shell PATH (auto-detected RC file)
+  --uninstall       Remove the shell PATH entry added by --install
+  --version         Print version information and exit
+
+DESCRIPTION
+  claude-jail launches Claude Code in a Docker container with access only to
+  the current directory. Your ~/.claude credentials are mounted read-write so
+  sessions and settings persist, but the rest of your host filesystem is not
+  visible inside the container.
+
+  Mounts (container path ← host path):
+    /workspace           ← $(pwd)
+    /root/.claude        ← ~/.claude
+    /root/.claude.json   ← ~/.claude.json
+
+  Security:
+    • no-new-privileges enforced — container cannot escalate permissions
+    • No SSH keys, AWS credentials, or other projects are accessible
+
+EXAMPLES
+  claude-jail                     Start an interactive Claude session
+  claude-jail -p "explain main"   Run a one-shot prompt
+  claude-jail --help              Show this message
+
+REQUIREMENTS
+  Docker must be installed and the Docker daemon must be running.
+
+  Install options:
+    • Docker Desktop  https://www.docker.com/products/docker-desktop
+    • OrbStack        https://orbstack.dev
+    • Colima          brew install colima && colima start
+
+MORE
+  https://github.com/oakblu/claude-jail
+EOF
+}
+
+# ── --version ─────────────────────────────────────────────────────────────────
+
+cmd_version() {
+  echo "claude-jail 1.0.0"
+}
+
+# ── main ─────────────────────────────────────────────────────────────────────
+
+main() {
+  case "${1:-}" in
+    -h|--help)
+      cmd_help
+      exit 0
+      ;;
+    --install)
+      cmd_install "${2:-}"
+      exit 0
+      ;;
+    --uninstall)
+      cmd_uninstall
+      exit 0
+      ;;
+    --version)
+      cmd_version
+      exit 0
+      ;;
+  esac
+
+  check_docker_installed
+  check_docker_running
+
+  exec docker run -it --rm \
+    --security-opt no-new-privileges \
+    -v "$(pwd):/workspace" \
+    -v "$HOME/.claude:/root/.claude" \
+    -v "$HOME/.claude.json:/root/.claude.json" \
+    -w /workspace \
+    "$DOCKER_IMAGE" \
+    claude "$@"
+}
+
+main "$@"
