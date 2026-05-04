@@ -10,12 +10,6 @@ brew install oakblu/claude-jail/claude-jail
 
 That's it. The installer checks for Docker, adds `claude-jail` to your PATH, and sets up your shell automatically.
 
-> **Prefer a shorter command?** Tap once, then use the short name forever:
-> ```bash
-> brew tap oakblu/claude-jail
-> brew install claude-jail
-> ```
-
 ---
 
 ## Quick start — no clone needed
