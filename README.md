@@ -159,7 +159,7 @@ The script spins up a container and checks:
 Expected output:
 
 ```
-Results: 10 passed  0 failed  3 warnings
+Results: 11 passed  0 failed  2 warnings
 ```
 
 Warnings (not failures) are expected for:

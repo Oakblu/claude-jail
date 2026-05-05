@@ -25,7 +25,7 @@ Expected: 5 test scripts, all passing.
 ```bash
 bash examples/security-tests/test-isolation.sh
 ```
-Expected: 10 passes, 3 warnings (no failures).
+Expected: 11 passes, 2 warnings (no failures).
 
 **CI/CD:**
 - `.github/workflows/ci.yml` — runs on every branch push and PR; builds the image and runs all 5 functional tests.
