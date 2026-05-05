@@ -19,7 +19,7 @@ ENV BUN_INSTALL=/usr/local/bun \
 RUN curl -fsSL https://bun.sh/install | bash \
     && chmod -R a+rx /usr/local/bun
 
-RUN corepack disable && npm install -g yarn pnpm @anthropic-ai/claude-code
+RUN corepack enable yarn pnpm && npm install -g @anthropic-ai/claude-code
 
 RUN userdel node && useradd -m -u 1000 -s /bin/bash claude \
     && mkdir -p /workspace && chown claude:claude /workspace
