@@ -33,6 +33,7 @@ run_in_container() {
 echo "=== test_03_workdir: Verifying workdir mounting ==="
 
 WORKDIR=$(mktemp -d)
+chmod 755 "$WORKDIR"
 
 echo "hello-from-host" > "$WORKDIR/host-file.txt"
 OUTPUT=$(run_in_container "cat /workspace/host-file.txt")

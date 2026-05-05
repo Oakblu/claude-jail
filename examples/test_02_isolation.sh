@@ -35,6 +35,7 @@ run_in_container() {
 echo "=== test_02_isolation: Verifying filesystem isolation ==="
 
 WORKDIR=$(mktemp -d)
+chmod 755 "$WORKDIR"
 SECRET_DIR=$(mktemp -d)
 echo "host-secret-content" > "$SECRET_DIR/secret.txt"
 

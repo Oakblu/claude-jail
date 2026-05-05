@@ -26,6 +26,7 @@ assert_fail() {
 echo "=== test_04_auth_modes: Verifying authentication modes ==="
 
 WORKDIR=$(mktemp -d)
+chmod 755 "$WORKDIR"
 
 RESULT=$(docker run --rm \
   --entrypoint /bin/bash \
@@ -41,6 +42,7 @@ else
 fi
 
 FAKE_CLAUDE=$(mktemp -d)
+chmod 755 "$FAKE_CLAUDE"
 echo "sentinel-content" > "$FAKE_CLAUDE/sentinel.txt"
 
 RESULT=$(docker run --rm \
