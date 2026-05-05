@@ -31,11 +31,12 @@ claude-jail() {
   docker run -it --rm \
     --security-opt no-new-privileges \
     -v "$(pwd):/workspace" \
-    -v "$HOME/.claude:/root/.claude" \
-    -v "$HOME/.claude.json:/root/.claude.json" \
+    -v "$HOME/.claude:/home/claude/.claude" \
+    -v "$HOME/.claude.json:/home/claude/.claude.json" \
+    -e AUTH_MODE=local \
     -w /workspace \
     oakblu/claude-jail:latest \
-    claude "$@"
+    "$@"
 }
 ```
 
@@ -60,8 +61,8 @@ claude-jail -p "explain this code" # one-shot print mode
 >       - no-new-privileges
 >     volumes:
 >       - ${WORKSPACE_PATH:-.}:/workspace
->       - ${HOME}/.claude:/root/.claude
->       - ${HOME}/.claude.json:/root/.claude.json
+>       - ${HOME}/.claude:/home/claude/.claude
+>       - ${HOME}/.claude.json:/home/claude/.claude.json
 > ```
 
 ---
@@ -83,8 +84,8 @@ The container mounts exactly three things from your host:
 | Mount | Purpose |
 |---|---|
 | `WORKSPACE_PATH` → `/workspace` | The project you want Claude to work on |
-| `~/.claude/` → `/root/.claude/` | Claude credentials and configuration (persistent login) |
-| `~/.claude.json` → `/root/.claude.json` | Claude main settings file |
+| `~/.claude/` → `/home/claude/.claude/` | Claude credentials and configuration (--local mode) |
+| `~/.claude.json` → `/home/claude/.claude.json` | Claude settings file (mounted if present, --local mode) |
 
 Everything else on your host — `~/.ssh`, `~/.zshrc`, `~/.aws`, other projects — is invisible to the container.
 
@@ -119,6 +120,20 @@ cd ~/my-project
 claude-jail                        # interactive session
 claude-jail -p "explain this code" # one-shot print mode
 claude-jail --help                 # show all Claude flags
+```
+
+## Auth modes
+
+| Flag | Behavior |
+|---|---|
+| *(default / `--local`)* | Mounts `~/.claude` from your host machine. Uses your existing login. Token refreshes and preference changes persist back to the host. |
+| `--fresh` | No config mounted. Claude prompts for login every run. Credentials never touch the host. |
+| `--persist` | Mounts `./.claude-jail/` as the Claude config directory. Created on first run. Subsequent runs from the same directory skip the login prompt. |
+
+**Tip:** When using `--persist`, add `.claude-jail/` to your `.gitignore`:
+
+```bash
+echo '.claude-jail/' >> .gitignore
 ```
 
 Claude Code runs inside the container. It can read and write files in `~/my-project` but cannot see anything else on your host.
@@ -170,11 +185,18 @@ Warnings (not failures) are expected for:
 ```
 claude-jail/
 ├── docker/
-│   ├── Dockerfile            # node:latest + claude-code global install
-│   └── docker-compose.yml    # volume mounts and security settings
+│   ├── Dockerfile            # node:lts-slim, non-root claude user, rust/bun/yarn/pnpm
+│   ├── entrypoint.sh         # per-mode container setup, exec's claude
+│   └── docker-compose.yml    # volume mounts and security settings (build-from-source)
 ├── examples/
+│   ├── run_all_tests.sh      # runs test_01 through test_05
+│   ├── test_01_software.sh   # all tools installed
+│   ├── test_02_isolation.sh  # host filesystem not accessible
+│   ├── test_03_workdir.sh    # bidirectional /workspace mount
+│   ├── test_04_auth_modes.sh # fresh/local/persist modes work
+│   ├── test_05_multi_instance.sh # concurrent containers are independent
 │   ├── security-tests/
-│   │   └── test-isolation.sh # automated isolation test suite
+│   │   └── test-isolation.sh # deep 7-point security property verification
 │   └── README.md
 └── README.md
 ```
@@ -183,4 +205,3 @@ claude-jail/
 
 - **Network is unrestricted by default.** Claude Code needs internet access to call the Anthropic API, but the container has no other network restrictions. Add `network_mode: none` with a local proxy if you need full network isolation.
 - **`~/.claude/` is read-write.** Claude needs to refresh its OAuth token and write session data. If you want to lock this down further, you can experiment with read-only mounts for the credentials file specifically.
-- **Runs as root inside the container.** The container user is root (node:latest default). This is standard for development containers but means if something escapes the container, it has root in that context.
