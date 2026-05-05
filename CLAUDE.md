@@ -15,21 +15,30 @@ The image is published to Docker Hub as `oakblu/claude-jail`.
 docker compose -f docker/docker-compose.yml build
 ```
 
-**Run isolation tests:**
+**Run functional tests:**
+```bash
+bash examples/run_all_tests.sh
+```
+Expected: 5 test scripts, all passing.
+
+**Run deep security tests:**
 ```bash
 bash examples/security-tests/test-isolation.sh
 ```
 Expected: 10 passes, 3 warnings (no failures).
 
-**CI/CD** is handled by `.github/workflows/docker-publish.yml` — pushes to `main` publish `:latest`; `v*.*.*` tags publish versioned images.
+**CI/CD:**
+- `.github/workflows/ci.yml` — runs on every branch push and PR; builds the image and runs all 5 functional tests.
+- `.github/workflows/docker-publish.yml` — runs on push to `main` or `v*.*.*` tags; builds, tests, then publishes `:latest` / versioned tags to Docker Hub.
 
 ## Architecture
 
-- **`docker/Dockerfile`** — Minimal Node.js image with `@anthropic-ai/claude-code` installed globally.
+- **`docker/Dockerfile`** — `node:lts-slim` image with `@anthropic-ai/claude-code`, yarn, pnpm, bun, and Rust installed globally. Runs as non-root user `claude` (UID 1000). Uses `entrypoint.sh` for per-mode container setup.
+- **`docker/entrypoint.sh`** — Reads `AUTH_MODE` env var (`fresh`/`local`/`persist`), creates `/home/claude/.claude` if persist mode, then `exec claude "$@"`.
 - **`docker/docker-compose.yml`** — Mounts three host paths into the container:
   - `${WORKSPACE_PATH}:/workspace` — the project being worked on
-  - `${HOME}/.claude:/root/.claude` — credentials and persistent Claude state
-  - `${HOME}/.claude.json:/root/.claude.json` — Claude settings
+  - `${HOME}/.claude:/home/claude/.claude` — credentials and persistent Claude state (--local mode)
+  - `${HOME}/.claude.json:/home/claude/.claude.json` — Claude settings (mounted if present)
   - Security: runs with `no-new-privileges`, no other host paths exposed.
 - **`examples/security-tests/test-isolation.sh`** — Validates 7 isolation properties: host filesystem invisibility, path traversal confinement, sensitive file inaccessibility, workspace write-through, credential availability, privilege escalation prevention, and symlink safety.
 
