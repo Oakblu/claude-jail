@@ -36,7 +36,7 @@ echo "=== test_05_multi_instance: Verifying concurrent container instances ==="
 WORKDIR1=$(mktemp -d)
 WORKDIR2=$(mktemp -d)
 WORKDIR3=$(mktemp -d)
-chmod 755 "$WORKDIR1" "$WORKDIR2" "$WORKDIR3"
+chmod 777 "$WORKDIR1" "$WORKDIR2" "$WORKDIR3"
 
 echo "instance-1" > "$WORKDIR1/id.txt"
 echo "instance-2" > "$WORKDIR2/id.txt"

@@ -26,7 +26,7 @@ assert_fail() {
 echo "=== test_04_auth_modes: Verifying authentication modes ==="
 
 WORKDIR=$(mktemp -d)
-chmod 755 "$WORKDIR"
+chmod 777 "$WORKDIR"
 
 RESULT=$(docker run --rm \
   --entrypoint /bin/bash \
@@ -60,6 +60,7 @@ else
 fi
 
 mkdir -p "$WORKDIR/.claude-jail"
+chmod 777 "$WORKDIR/.claude-jail"
 
 docker run --rm \
   --entrypoint /bin/bash \
