@@ -197,8 +197,14 @@ cmd_help() {
 claude-jail — Run Claude Code inside an isolated Docker sandbox
 
 USAGE
+  claude-jail [AUTH MODE] [CLAUDE ARGS...]
   claude-jail [OPTIONS]
-  claude-jail [CLAUDE ARGS...]
+
+AUTH MODES
+  (default / --local)   Mount ~/.claude from host. Uses your existing login.
+  --fresh               No credentials mounted. Login required every run.
+  --persist             Credentials stored in $PWD/.claude-jail/. Persists across runs.
+                        Add .claude-jail/ to .gitignore to avoid committing credentials.
 
 OPTIONS
   -h, --help        Show this help message and exit
@@ -208,21 +214,24 @@ OPTIONS
 
 DESCRIPTION
   claude-jail launches Claude Code in a Docker container with access only to
-  the current directory. Your ~/.claude credentials are mounted read-write so
-  sessions and settings persist, but the rest of your host filesystem is not
-  visible inside the container.
+  the current directory. The rest of your host filesystem is not visible
+  inside the container.
 
   Mounts (container path ← host path):
-    /workspace           ← $(pwd)
-    /root/.claude        ← ~/.claude
-    /root/.claude.json   ← ~/.claude.json
+    /workspace                    ← $(pwd)
+    /home/claude/.claude          ← ~/.claude          (--local mode, default)
+    /home/claude/.claude.json     ← ~/.claude.json     (--local mode, if present)
+    /home/claude/.claude          ← ./.claude-jail/    (--persist mode)
 
   Security:
+    • Runs as non-root user (claude, UID 1000)
     • no-new-privileges enforced — container cannot escalate permissions
     • No SSH keys, AWS credentials, or other projects are accessible
 
 EXAMPLES
-  claude-jail                     Start an interactive Claude session
+  claude-jail                     Start a session using your host Claude login
+  claude-jail --fresh             Start a fresh session (login each time)
+  claude-jail --persist           Start a session with per-project credentials
   claude-jail -p "explain main"   Run a one-shot prompt
   claude-jail --help              Show this message
 
@@ -267,17 +276,46 @@ main() {
       ;;
   esac
 
+  AUTH_MODE="local"
+  CLAUDE_ARGS=()
+  for arg in "$@"; do
+    case "$arg" in
+      --fresh|--local|--persist) AUTH_MODE="${arg#--}" ;;
+      *) CLAUDE_ARGS+=("$arg") ;;
+    esac
+  done
+
   check_docker_installed
   check_docker_running
 
+  VOLUMES=(-v "$PWD:/workspace")
+
+  case "$AUTH_MODE" in
+    local)
+      if [[ ! -d "$HOME/.claude" ]]; then
+        die "--local mode requires ~/.claude to exist. Run 'claude' on your host first to log in, or use --fresh."
+      fi
+      VOLUMES+=(-v "$HOME/.claude:/home/claude/.claude:rw")
+      if [[ -f "$HOME/.claude.json" ]]; then
+        VOLUMES+=(-v "$HOME/.claude.json:/home/claude/.claude.json:rw")
+      fi
+      ;;
+    persist)
+      local jail_dir="$PWD/.claude-jail"
+      mkdir -p "$jail_dir"
+      VOLUMES+=(-v "$jail_dir:/home/claude/.claude:rw")
+      ;;
+    fresh)
+      ;;
+  esac
+
   exec docker run -it --rm \
     --security-opt no-new-privileges \
-    -v "$(pwd):/workspace" \
-    -v "$HOME/.claude:/root/.claude" \
-    -v "$HOME/.claude.json:/root/.claude.json" \
+    "${VOLUMES[@]}" \
+    -e "AUTH_MODE=$AUTH_MODE" \
     -w /workspace \
     "$DOCKER_IMAGE" \
-    claude "$@"
+    "${CLAUDE_ARGS[@]+"${CLAUDE_ARGS[@]}"}"
 }
 
 main "$@"
