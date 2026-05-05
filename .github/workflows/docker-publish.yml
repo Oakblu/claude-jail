@@ -8,11 +8,38 @@ on:
       - "v*.*.*"
 
 jobs:
-  build-and-push:
+  build-test-push:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build image for testing
+        uses: docker/build-push-action@v6
+        with:
+          context: ./docker
+          push: false
+          load: true
+          tags: claude-jail:test
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Test -- installed software
+        run: CLAUDE_JAIL_IMAGE=claude-jail:test bash examples/test_01_software.sh
+
+      - name: Test -- filesystem isolation
+        run: CLAUDE_JAIL_IMAGE=claude-jail:test bash examples/test_02_isolation.sh
+
+      - name: Test -- working directory mount
+        run: CLAUDE_JAIL_IMAGE=claude-jail:test bash examples/test_03_workdir.sh
+
+      - name: Test -- auth modes (fresh / local / persist)
+        run: CLAUDE_JAIL_IMAGE=claude-jail:test bash examples/test_04_auth_modes.sh
+
+      - name: Test -- concurrent instances
+        run: CLAUDE_JAIL_IMAGE=claude-jail:test bash examples/test_05_multi_instance.sh
 
       - name: Log in to Docker Hub
         uses: docker/login-action@v3
@@ -30,10 +57,7 @@ jobs:
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Build and push
+      - name: Push to Docker Hub
         uses: docker/build-push-action@v6
         with:
           context: ./docker

@@ -15,7 +15,7 @@ warn()  { printf '\033[0;33m  WARN\033[0m %s\n' "$1"; }
 header(){ printf '\n\033[1m%s\033[0m\n' "$1"; }
 
 run_in_container() {
-  WORKSPACE_PATH="$(pwd)" docker compose -f "$COMPOSE_FILE" run --rm claude-jail bash -c "$1" 2>/dev/null
+  WORKSPACE_PATH="$(pwd)" docker compose -f "$COMPOSE_FILE" run --rm --entrypoint bash claude-jail -c "$1" 2>/dev/null
 }
 
 header "Building image (if needed)..."
@@ -54,30 +54,30 @@ else
   green "/workspace/../../ stays inside container filesystem"; ((++PASS))
 fi
 
-claude_traversal=$(run_in_container 'ls /root/.claude/../ 2>/dev/null | wc -l | tr -d " "')
+claude_traversal=$(run_in_container 'ls /home/claude/.claude/../ 2>/dev/null | wc -l | tr -d " "')
 if [ "${claude_traversal:-0}" -gt 20 ]; then
-  warn "/root/.claude/../ shows many files — check if host ~ is exposed (${claude_traversal} entries)"; ((++WARN))
+  warn "/home/claude/.claude/../ shows many files — check if host ~ is exposed (${claude_traversal} entries)"; ((++WARN))
 else
-  green "/root/.claude/../ does not expose host home directory"; ((++PASS))
+  green "/home/claude/.claude/../ does not expose host home directory"; ((++PASS))
 fi
 
 # ---------------------------------------------------------------------------
 header "3. Sensitive host file access"
 # ---------------------------------------------------------------------------
 
-if run_in_container 'cat /root/.claude/../.zshrc 2>/dev/null' | grep -q .; then
+if run_in_container 'cat /home/claude/.claude/../.zshrc 2>/dev/null' | grep -q .; then
   red "Container can read ~/.zshrc via .claude mount traversal"; ((++FAIL))
 else
   green "Cannot read ~/.zshrc via mount traversal"; ((++PASS))
 fi
 
-if run_in_container 'ls /root/.claude/../.ssh 2>/dev/null' | grep -q .; then
+if run_in_container 'ls /home/claude/.claude/../.ssh 2>/dev/null' | grep -q .; then
   red "Container can see ~/.ssh via mount traversal"; ((++FAIL))
 else
   green "Cannot access ~/.ssh via mount traversal"; ((++PASS))
 fi
 
-if run_in_container 'cat /root/.claude/../.aws/credentials 2>/dev/null' | grep -q .; then
+if run_in_container 'cat /home/claude/.claude/../.aws/credentials 2>/dev/null' | grep -q .; then
   red "Container can read ~/.aws/credentials via mount traversal"; ((++FAIL))
 else
   green "Cannot read ~/.aws/credentials via mount traversal"; ((++PASS))
@@ -100,7 +100,7 @@ fi
 header "5. Claude credentials accessible (expected behavior)"
 # ---------------------------------------------------------------------------
 
-if run_in_container 'test -f /root/.claude/.credentials.json && echo yes' | grep -q yes; then
+if run_in_container 'test -f /home/claude/.claude/.credentials.json && echo yes' | grep -q yes; then
   green "Claude credentials are accessible inside the container (required for auth)"; ((++PASS))
 else
   warn "Claude credentials not found — you may need to log in once on the host"; ((++WARN))
@@ -126,7 +126,7 @@ fi
 header "7. Symlink safety inside .claude mount"
 # ---------------------------------------------------------------------------
 
-bad_symlinks=$(run_in_container 'find /root/.claude -type l 2>/dev/null | while read link; do
+bad_symlinks=$(run_in_container 'find /home/claude/.claude -type l 2>/dev/null | while read link; do
   target=$(readlink "$link")
   case "$target" in
     /Users/*|/home/*|/root/[^.]*) echo "$link -> $target" ;;
