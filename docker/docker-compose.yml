@@ -6,8 +6,8 @@ services:
       dockerfile: Dockerfile
     volumes:
       - ${WORKSPACE_PATH:-.}:/workspace
-      - ${HOME}/.claude:/root/.claude
-      - ${HOME}/.claude.json:/root/.claude.json
+      - ${HOME}/.claude:/home/claude/.claude
+      - ${HOME}/.claude.json:/home/claude/.claude.json
     working_dir: /workspace
     security_opt:
       - no-new-privileges
