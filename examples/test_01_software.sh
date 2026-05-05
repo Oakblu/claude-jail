@@ -57,10 +57,22 @@ check_exists() {
   fi
 }
 
+check_host_version() {
+  local tool="$1"
+  local cmd="${2:-$tool --version}"
+  local OUTPUT
+  OUTPUT=$(eval "$cmd" 2>&1) && EXIT=0 || EXIT=$?
+  if [ $EXIT -eq 0 ] && [ -n "$OUTPUT" ]; then
+    assert_pass "$tool: $OUTPUT"
+  else
+    assert_fail "$tool not found or returned no output"
+  fi
+}
+
 check_version "node"
 check_version "npm"
-check_version "yarn"
-check_version "pnpm"
+check_host_version "yarn"
+check_host_version "pnpm"
 check_version "bun"
 check_version "cargo"
 check_version "rustc"

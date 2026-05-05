@@ -15,6 +15,9 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      - name: Install yarn and pnpm
+        run: npm install -g yarn pnpm
+
       - name: Build Docker image
         uses: docker/build-push-action@v6
         with:
