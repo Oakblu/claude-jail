@@ -21,6 +21,8 @@ RUN curl -fsSL https://bun.sh/install | bash \
 
 RUN corepack disable && npm install -g yarn pnpm @anthropic-ai/claude-code
 
+RUN npx playwright install-deps chromium
+
 RUN userdel node && useradd -m -u 1000 -s /bin/bash claude \
     && mkdir -p /workspace && chown claude:claude /workspace
 
