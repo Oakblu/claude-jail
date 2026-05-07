@@ -19,7 +19,7 @@ ENV BUN_INSTALL=/usr/local/bun \
 RUN curl -fsSL https://bun.sh/install | bash \
     && chmod -R a+rx /usr/local/bun
 
-RUN corepack disable && npm install -g yarn pnpm @anthropic-ai/claude-code
+RUN corepack disable && npm install -g yarn pnpm @anthropic-ai/claude-code @fission-ai/openspec@latest
 
 RUN npx playwright install-deps chromium
 
