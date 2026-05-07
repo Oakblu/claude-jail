@@ -2,6 +2,7 @@
 set -e
 
 AUTH_MODE="${AUTH_MODE:-fresh}"
+AGENT="${AGENT:-claude}"
 
 case "$AUTH_MODE" in
   persist)
@@ -11,4 +12,4 @@ case "$AUTH_MODE" in
     ;;
 esac
 
-exec claude "$@"
+exec "$AGENT" "$@"
