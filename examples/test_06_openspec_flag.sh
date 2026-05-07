@@ -49,25 +49,18 @@ else
   assert_fail "openspec binary not found in image"
 fi
 
-# Test 3: AGENT env var controls which binary is exec'd by entrypoint
-# Uses a fake binary written into /workspace so no image rebuild is needed
-mkdir -p "$WORKDIR/fake-bin"
-cat > "$WORKDIR/fake-bin/fake-agent" << 'FAKESCRIPT'
-#!/bin/sh
-echo "fake-agent-was-called"
-FAKESCRIPT
-chmod +x "$WORKDIR/fake-bin/fake-agent"
-
+# Test 3: AGENT env var is read and validated by the entrypoint allowlist
+# An unknown value should produce the specific "unknown AGENT" error from entrypoint.sh
 RESULT=$(docker run --rm \
   -e AUTH_MODE=fresh \
-  -e AGENT=/workspace/fake-bin/fake-agent \
+  -e AGENT=not-a-real-agent \
   -v "$WORKDIR:/workspace" \
   "$CLAUDE_JAIL_IMAGE" 2>&1) && AGENT_EXIT=0 || AGENT_EXIT=$?
 
-if echo "$RESULT" | grep -q "fake-agent-was-called"; then
-  assert_pass "AGENT env var selects which binary entrypoint executes"
+if echo "$RESULT" | grep -q "unknown AGENT" && [ "$AGENT_EXIT" -ne 0 ]; then
+  assert_pass "AGENT env var is read by entrypoint (invalid value rejected with error)"
 else
-  assert_fail "AGENT env var did not control binary selection (exit=$AGENT_EXIT, got: '$RESULT')"
+  assert_fail "AGENT env var not read by entrypoint (exit=$AGENT_EXIT, got: '$RESULT')"
 fi
 
 echo ""
