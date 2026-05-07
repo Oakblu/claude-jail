@@ -53,7 +53,7 @@ fi
 # Uses a fake binary written into /workspace so no image rebuild is needed
 mkdir -p "$WORKDIR/fake-bin"
 cat > "$WORKDIR/fake-bin/fake-agent" << 'FAKESCRIPT'
-#!/bin/bash
+#!/bin/sh
 echo "fake-agent-was-called"
 FAKESCRIPT
 chmod +x "$WORKDIR/fake-bin/fake-agent"
@@ -62,12 +62,12 @@ RESULT=$(docker run --rm \
   -e AUTH_MODE=fresh \
   -e AGENT=/workspace/fake-bin/fake-agent \
   -v "$WORKDIR:/workspace" \
-  "$CLAUDE_JAIL_IMAGE" 2>&1) || true
+  "$CLAUDE_JAIL_IMAGE" 2>&1) && AGENT_EXIT=0 || AGENT_EXIT=$?
 
 if echo "$RESULT" | grep -q "fake-agent-was-called"; then
   assert_pass "AGENT env var selects which binary entrypoint executes"
 else
-  assert_fail "AGENT env var did not control binary selection (got: '$RESULT')"
+  assert_fail "AGENT env var did not control binary selection (exit=$AGENT_EXIT, got: '$RESULT')"
 fi
 
 echo ""
