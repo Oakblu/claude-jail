@@ -42,3 +42,6 @@ jobs:
 
       - name: Test -- concurrent instances
         run: CLAUDE_JAIL_IMAGE=claude-jail:ci bash examples/test_05_multi_instance.sh
+
+      - name: Test -- openspec flag and binary
+        run: CLAUDE_JAIL_IMAGE=claude-jail:ci bash examples/test_06_openspec_flag.sh

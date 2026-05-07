@@ -28,7 +28,7 @@ By default, `claude-jail` mounts your host credentials so you don't need to log 
 | *(default / `--local`)* | Mounts `~/.claude` from your host. Uses your existing login. |
 | `--fresh` | No credentials mounted. Claude prompts for login every run. |
 | `--persist` | Credentials stored in `./.claude-jail/` in the current project. Login once per project. |
-| `--openspec` | Runs [OpenSpec](https://github.com/Fission-AI/OpenSpec) instead of Claude Code. Combinable with any auth mode flag. |
+| `--openspec` | Runs [OpenSpec](https://github.com/Fission-AI/OpenSpec) instead of Claude Code. Combinable with any auth mode flag. OpenSpec calls Claude internally, so credentials are still required. |
 
 ```bash
 claude-jail                        # use your host login (default)
@@ -102,25 +102,34 @@ If you prefer not to use Homebrew, you can add a shell function directly to your
 ```bash
 claude-jail() {
   local auth_mode="local"
+  local agent="claude"
   local volumes=(-v "$(pwd):/workspace")
+  local args=()
 
-  case "${1:-}" in
-    --fresh)   auth_mode="fresh"; shift ;;
-    --persist) auth_mode="persist"
-               mkdir -p "$(pwd)/.claude-jail"
-               volumes+=(-v "$(pwd)/.claude-jail:/home/claude/.claude:rw")
-               shift ;;
-    *)         volumes+=(-v "$HOME/.claude:/home/claude/.claude:rw")
-               [[ -f "$HOME/.claude.json" ]] && volumes+=(-v "$HOME/.claude.json:/home/claude/.claude.json:rw") ;;
-  esac
+  for arg in "$@"; do
+    case "$arg" in
+      --fresh)   auth_mode="fresh" ;;
+      --persist) auth_mode="persist"
+                 mkdir -p "$(pwd)/.claude-jail"
+                 volumes+=(-v "$(pwd)/.claude-jail:/home/claude/.claude:rw") ;;
+      --openspec) agent="openspec" ;;
+      *)         args+=("$arg") ;;
+    esac
+  done
+
+  if [[ "$auth_mode" == "local" ]]; then
+    volumes+=(-v "$HOME/.claude:/home/claude/.claude:rw")
+    [[ -f "$HOME/.claude.json" ]] && volumes+=(-v "$HOME/.claude.json:/home/claude/.claude.json:rw")
+  fi
 
   docker run -it --rm \
     --security-opt no-new-privileges \
     "${volumes[@]}" \
     -e "AUTH_MODE=$auth_mode" \
+    -e "AGENT=$agent" \
     -w /workspace \
     oakblu/claude-jail:latest \
-    "$@"
+    "${args[@]+"${args[@]}"}"
 }
 ```
 
@@ -143,4 +152,4 @@ bash examples/run_all_tests.sh        # functional tests
 bash examples/security-tests/test-isolation.sh  # isolation verification
 ```
 
-Expected: 5 test scripts all passing, and `11 passed  2 warnings` for the security test.
+Expected: 6 test scripts all passing, and `11 passed  2 warnings` for the security test.
