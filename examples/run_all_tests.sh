@@ -9,6 +9,7 @@ TESTS=(
   test_03_workdir.sh
   test_04_auth_modes.sh
   test_05_multi_instance.sh
+  test_06_openspec_flag.sh
 )
 
 PASS=0

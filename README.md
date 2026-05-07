@@ -28,11 +28,14 @@ By default, `claude-jail` mounts your host credentials so you don't need to log 
 | *(default / `--local`)* | Mounts `~/.claude` from your host. Uses your existing login. |
 | `--fresh` | No credentials mounted. Claude prompts for login every run. |
 | `--persist` | Credentials stored in `./.claude-jail/` in the current project. Login once per project. |
+| `--openspec` | Runs [OpenSpec](https://github.com/Fission-AI/OpenSpec) instead of Claude Code. Combinable with any auth mode flag. |
 
 ```bash
-claude-jail                  # use your host login (default)
-claude-jail --fresh          # fresh session, no credentials
-claude-jail --persist        # per-project credentials
+claude-jail                        # use your host login (default)
+claude-jail --fresh                # fresh session, no credentials
+claude-jail --persist              # per-project credentials
+claude-jail --openspec init        # initialize OpenSpec in the current project
+claude-jail --openspec --fresh     # run OpenSpec with a fresh session
 ```
 
 **Tip:** When using `--persist`, add `.claude-jail/` to your `.gitignore`:
