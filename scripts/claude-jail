@@ -208,6 +208,11 @@ AUTH MODES
   --persist             Credentials stored in $PWD/.claude-jail/. Persists across runs.
                         Add .claude-jail/ to .gitignore to avoid committing credentials.
 
+AGENT
+  (default)             Run Claude Code (claude).
+  --openspec            Run OpenSpec (openspec) instead of Claude Code.
+                        Combinable with any auth mode flag.
+
 OPTIONS
   -h, --help        Show this help message and exit
   --install         Add claude-jail to your shell PATH (auto-detected RC file)
@@ -235,6 +240,8 @@ EXAMPLES
   claude-jail --fresh             Start a fresh session (login each time)
   claude-jail --persist           Start a session with per-project credentials
   claude-jail -p "explain main"   Run a one-shot prompt
+  claude-jail --openspec init     Initialize OpenSpec in the current project
+  claude-jail --openspec --fresh  Run OpenSpec with a fresh session
   claude-jail --help              Show this message
 
 REQUIREMENTS
@@ -279,10 +286,12 @@ main() {
   esac
 
   AUTH_MODE="local"
+  AGENT="claude"
   CLAUDE_ARGS=()
   for arg in "$@"; do
     case "$arg" in
       --fresh|--local|--persist) AUTH_MODE="${arg#--}" ;;
+      --openspec) AGENT="openspec" ;;
       *) CLAUDE_ARGS+=("$arg") ;;
     esac
   done
@@ -315,6 +324,7 @@ main() {
     --security-opt no-new-privileges \
     "${VOLUMES[@]}" \
     -e "AUTH_MODE=$AUTH_MODE" \
+    -e "AGENT=$AGENT" \
     -w /workspace \
     "$DOCKER_IMAGE" \
     "${CLAUDE_ARGS[@]+"${CLAUDE_ARGS[@]}"}"
