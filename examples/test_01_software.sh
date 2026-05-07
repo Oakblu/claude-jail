@@ -78,6 +78,7 @@ check_version "cargo"
 check_version "rustc"
 check_version "python3"
 check_exists  "claude"
+check_exists  "openspec"
 
 echo ""
 echo "Results: $PASS_COUNT passed, $FAIL_COUNT failed"
