@@ -199,7 +199,7 @@ cmd_help() {
 claude-jail — Run Claude Code inside an isolated Docker sandbox
 
 USAGE
-  claude-jail [AUTH MODE] [CLAUDE ARGS...]
+  claude-jail [AUTH MODE] [AGENT] [CLAUDE ARGS...]
   claude-jail [OPTIONS]
 
 AUTH MODES
